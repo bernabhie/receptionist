@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Referral;
+use Illuminate\Http\Request;
+
+class ReferralController extends Controller
+{
+    public function index()
+    {
+        $referrals = Referral::orderByDesc('date')->get();
+        return view('referrals.index', compact('referrals'));
+    }
+
+    public function release(Referral $referral)
+    {
+        if ($referral->status === 'Pending') {
+            $referral->update(['status' => 'Redeemed']);
+        }
+
+        return back()->with('success', "Released ₱{$referral->reward} to {$referral->referrer}.");
+    }
+}
