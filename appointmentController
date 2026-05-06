@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Appointment;
+use Illuminate\Http\Request;
+
+class AppointmentController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Appointment::query();
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('patient', 'like', "%{$search}%")
+                  ->orWhere('procedure', 'like', "%{$search}%")
+                  ->orWhere('appointment_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        $appointments = $query->orderBy('date')->orderBy('time')->get();
+
+        return view('appointments.index', compact('appointments'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'patient'   => 'required|string|max:255',
+            'procedure' => 'required|string|max:255',
+            'dentist'   => 'required|string|max:255',
+            'time'      => 'required',
+            'date'      => 'required|date',
+            'status'    => 'nullable|in:Scheduled,Checked-in,Completed,Cancelled',
+        ]);
+
+        $validated['appointment_id'] = Appointment::nextId();
+        $validated['status'] = $validated['status'] ?? 'Scheduled';
+
+        Appointment::create($validated);
+
+        return redirect()->route('appointments.index')
+            ->with('success', 'Appointment booked successfully.');
+    }
+
+    public function confirm(Appointment $appointment)
+    {
+        $appointment->update(['status' => 'Checked-in']);
+
+        return back()->with('success', "Appointment {$appointment->appointment_id} confirmed.");
+    }
+}
