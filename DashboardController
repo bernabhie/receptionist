@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Appointment;
+use App\Models\Payment;
+use App\Models\Referral;
+use Illuminate\Http\Request;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        $today = now()->toDateString();
+
+        $upcomingAppointments = Appointment::whereDate('date', $today)
+            ->whereNotIn('status', ['Completed', 'Cancelled'])
+            ->orderBy('time')
+            ->take(5)
+            ->get();
+
+        $recentPayments = Payment::latest()->take(4)->get();
+
+        $pendingReferrals = Referral::where('status', 'Pending')->get();
+
+        $stats = [
+            'appointments_today' => Appointment::whereDate('date', $today)->count(),
+            'walkins'            => Appointment::whereDate('date', $today)->where('status', 'Checked-in')->count(),
+            'payments_today'     => Payment::whereDate('date', $today)->where('status', 'Paid')->sum('amount'),
+            'pending_referrals'  => $pendingReferrals->count(),
+        ];
+
+        return view('dashboard', compact('upcomingAppointments', 'recentPayments', 'pendingReferrals', 'stats'));
+    }
+}
