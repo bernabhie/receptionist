@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Appointment;
+use Illuminate\Http\Request;
+
+class CheckInController extends Controller
+{
+    public function index()
+    {
+        $queue = Appointment::whereDate('date', now()->toDateString())
+            ->where('status', 'Checked-in')
+            ->orderBy('time')
+            ->get();
+
+        return view('checkin.index', compact('queue'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:100',
+            'last_name'  => 'required|string|max:100',
+            'age'        => 'nullable|integer|min:1|max:120',
+            'contact'    => 'nullable|string|max:30',
+            'procedure'  => 'required|string|max:255',
+            'notes'      => 'nullable|string|max:1000',
+        ]);
+
+        Appointment::create([
+            'appointment_id' => Appointment::nextId(),
+            'patient'        => $validated['first_name'] . ' ' . $validated['last_name'],
+            'procedure'      => $validated['procedure'],
+            'dentist'        => 'Dr. Bonoan',   // default; assign properly in production
+            'time'           => now()->format('H:i'),
+            'date'           => now()->toDateString(),
+            'status'         => 'Checked-in',
+        ]);
+
+        return redirect()->route('checkin.index')
+            ->with('success', $validated['first_name'] . ' ' . $validated['last_name'] . ' added to the queue.');
+    }
+}
