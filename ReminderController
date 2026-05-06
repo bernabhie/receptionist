@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Appointment;
+use Illuminate\Http\Request;
+
+class ReminderController extends Controller
+{
+    public function index()
+    {
+        $upcoming = Appointment::where('status', 'Scheduled')
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get();
+
+        return view('reminders.index', compact('upcoming'));
+    }
+
+    public function send(Request $request, Appointment $appointment)
+    {
+        $channel = $request->input('channel', 'email');
+
+        // In a real app: dispatch a Mail/SMS job here.
+        // Mail::to($patient->email)->send(new AppointmentReminder($appointment));
+
+        $label = $channel === 'sms' ? 'SMS' : 'Email';
+
+        return back()->with('success', "{$label} reminder sent to {$appointment->patient}.");
+    }
+}
